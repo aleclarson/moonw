@@ -10,4 +10,4 @@ if [ -z `which node` ]; then
 fi
 
 SELF_PATH=`readlink "$0"`
-node "$(dirname $SELF_PATH)/index.js"
+node "$(dirname $SELF_PATH)/index.js" $@

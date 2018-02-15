@@ -7,7 +7,9 @@ let fs = require('fsx')
 let huey = require('huey')
 Object.keys(huey).forEach(key => {
   let color = huey[key]
-  print[key] = (m) => print(color(m))
+  print[key] = function(m, ...args) {
+    print(color(m), ...args)
+  }
 })
 
 let argv = process.argv.slice(2)
@@ -30,7 +32,13 @@ if (!fs.exists(dest)) {
 
 src = path.join(process.cwd(), src)
 if (fs.isDir(src)) {
-  watch()
+  let file = get_arg('-c')
+  if (file) {
+    file = path.resolve(src, file)
+    fs.isFile(file) && transpile(file)
+  } else {
+    watch()
+  }
 } else {
   fatal('invalid src directory: ' + src)
 }
@@ -39,15 +47,35 @@ if (fs.isDir(src)) {
 // Helpers
 //
 
-function get_dest(file) {
+function get_dest(file, ext) {
+  if (ext) {
+    let old_ext = path.extname(file)
+    if (old_ext) file = file.slice(0, -old_ext.length)
+    file += ext
+  }
   let rel = path.relative(src, file)
   return path.join(dest, rel)
 }
 
 function transpile(file) {
-  let dest = new WriteStream(get_dest(file))
-  let proc = spawn('moonc', [file, '-p'])
-  proc.stdout.on('data', (data) => dest.write(data))
+  if (file.endsWith('.moon')) {
+    let dest = new WriteStream(get_dest(file, '.lua'))
+    let write = (data) => dest.write(data)
+
+    let proc = spawn('moonc', ['-p', file])
+    proc.stdout.on('data', write)
+    proc.stderr.on('data', (data) => {
+      let err = data.toString().split(file)[1]
+      let rel = path.relative(process.cwd(), file)
+      print('')
+      print.red(rel, '\n ', err.trim().replace(/\n\s+/g, '\n    '))
+      print('')
+    })
+    proc.once('close', () => dest.end())
+    proc.once('error', onError)
+  } else {
+    fs.copy(file, get_dest(file))
+  }
 }
 
 function watch() {
@@ -55,21 +83,29 @@ function watch() {
   let events = {
     add: transpile,
     change: transpile,
-    unlink: (file) => fs.removeFile(get_dest(file)),
-    addDir: noop,
-    unlinkDir: noop,
+    unlink(file) {
+      let ext = file.endsWith('.moon') ? '.lua' : null
+      fs.removeFile(get_dest(file, ext))
+    },
+    addDir: (dir) => fs.writeDir(get_dest(dir)),
+    unlinkDir: (dir) => fs.removeDir(get_dest(dir)),
+  }
+  let colors = {
+    add: print.green,
+    change: print.yellow,
+    unlink: print.red,
   }
   return chokidar.watch(src + '/**/*', {
     ignored: ['**/.DS_Store', '**/*.swp'],
   }).on('all', (event, file) => {
-    print(huey.green(event + ': ') + file)
+    if (!loading && event.slice(-3) != 'Dir') {
+      let rel = path.relative(process.cwd(), file)
+      colors[event](event + ':', rel)
+    }
     events[event](file)
   }).once('ready', () => {
+    print.cyan('Watching for changes...')
     loading = false
-    events.addDir = (dir) =>
-      fs.writeDir(get_dest(file))
-    events.unlinkDir = (dir) =>
-      fs.removeDir(get_dest(file))
   })
 }
 
@@ -83,13 +119,16 @@ function get_arg(flag) {
   }
 }
 
-function print(m) {
-  console.log(m)
+function print() {
+  console.log(...arguments)
 }
 
-function fatal(m) {
-  print.red(m)
+function fatal() {
+  print.red(...arguments)
   process.exit(1)
 }
 
-function noop() {}
+function onError(err) {
+  let msg = err.constructor.name + ': ' + err.message
+  print.red(msg, err.stack.slice(msg.length))
+}

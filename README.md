@@ -1,12 +1,12 @@
-# moonw v0.0.1
+# moonw v1.0.0
 
 File watcher for [moonscript](https://github.com/leafo/moonscript)
 
 - Watch `.moon` files
 - Transpile changed files (even on startup)
-- Copy `.lua` files into the output directory
+- Copy non-`.moon` files into the output directory
 
-```sh
+```
 moonw <src> -o <dest>
 ```
 
