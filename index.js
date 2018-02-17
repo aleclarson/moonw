@@ -96,6 +96,7 @@ function watch() {
     change: print.yellow,
     unlink: print.red,
   }
+  print.cyan('Watching for changes...')
   return chokidar.watch(src + '/**/*', {
     ignored: ['**/.DS_Store', '**/*.swp'],
   }).on('all', (event, file) => {
@@ -105,7 +106,6 @@ function watch() {
     }
     events[event](file)
   }).once('ready', () => {
-    print.cyan('Watching for changes...')
     loading = false
   })
 }
