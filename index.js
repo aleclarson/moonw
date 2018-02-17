@@ -66,10 +66,11 @@ function transpile(file) {
     proc.stdout.on('data', write)
     proc.stderr.on('data', (data) => {
       let err = data.toString().split(file)[1]
+          err = '  ' + err.trim().replace(/\n\s+/g, '\n    ')
       let rel = path.relative(process.cwd(), file)
-      print('')
-      print.red(rel, '\n ', err.trim().replace(/\n\s+/g, '\n    '))
-      print('')
+      let msg = huey.red(rel) + '\n' + err
+      print(`\n${msg}\n`)
+      write(`print([[\n\n${msg}]])\nrequire('os').exit()`)
     })
     proc.once('close', () => dest.end())
     proc.once('error', onError)
