@@ -1,6 +1,6 @@
-let {WriteStream} = require('fs')
-let {spawn} = require('child_process')
+let {ReadStream, WriteStream} = require('fs')
 let chokidar = require('chokidar')
+let moonc = require('moonc')
 let path = require('path')
 let fs = require('fsx')
 
@@ -59,33 +59,40 @@ function get_dest(file, ext) {
 
 function transpile(file) {
   if (file.endsWith('.moon')) {
-    let dest = new WriteStream(get_dest(file, '.lua'))
-    let write = (data) => dest.write(data)
+    // Read from the given file path.
+    let input = new ReadStream(file)
+      .once('error', onError)
 
-    let proc = spawn('moonc', ['-p', file])
-    proc.stdout.on('data', write)
-    proc.stderr.on('data', (data) => {
-      let err = data.toString().split(file)[1]
-          err = '  ' + err.trim().replace(/\n\s+/g, '\n    ')
-      let rel = path.relative(process.cwd(), file)
-      let msg = huey.red(rel) + '\n' + err
-      print(`\n${msg}\n`)
-      write(`print([[\n\n${msg}]])\nrequire('os').exit()`)
+    // Write to the resolved dest path.
+    let dest = new WriteStream(get_dest(file, '.lua'))
+      .once('error', onError)
+
+    // Transpile in between read and write.
+    moonc(input).once('error', (err) => {
+      if (err.name == 'SyntaxError') {
+        let rel = path.relative(process.cwd(), file)
+        let msg = huey.red(rel) + '\n' + err.message
+        dest.write(`print([[\n\n${msg}]])\nrequire('os').exit()`)
+        print(`\n${msg}\n`)
+      } else {
+        onError(err)
+      }
+    }).pipe(dest).once('finish', () => {
+      print.green('transpiled:', path.relative(process.cwd(), file))
     })
-    proc.once('close', () => dest.end())
-    proc.once('error', onError)
   } else {
+    // Copy all other file types.
     fs.copy(file, get_dest(file))
   }
 }
 
 function watch() {
-  let loading = true
   let events = {
     add: transpile,
     change: transpile,
     unlink(file) {
       let ext = file.endsWith('.moon') ? '.lua' : null
+      print.red('unlink:', path.relative(process.cwd(), file))
       fs.removeFile(get_dest(file, ext))
     },
     addDir: (dir) => fs.writeDir(get_dest(dir)),
@@ -100,13 +107,7 @@ function watch() {
   return chokidar.watch(src + '/**/*', {
     ignored: ['**/.DS_Store', '**/*.swp'],
   }).on('all', (event, file) => {
-    if (!loading && event.slice(-3) != 'Dir') {
-      let rel = path.relative(process.cwd(), file)
-      colors[event](event + ':', rel)
-    }
     events[event](file)
-  }).once('ready', () => {
-    loading = false
   })
 }
 
