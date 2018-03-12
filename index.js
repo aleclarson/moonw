@@ -98,11 +98,6 @@ function watch() {
     addDir: (dir) => fs.writeDir(get_dest(dir)),
     unlinkDir: (dir) => fs.removeDir(get_dest(dir)),
   }
-  let colors = {
-    add: print.green,
-    change: print.yellow,
-    unlink: print.red,
-  }
   print.cyan('Watching for changes...')
   return chokidar.watch(src + '/**/*', {
     ignored: ['**/.DS_Store', '**/*.swp'],
