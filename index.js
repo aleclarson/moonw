@@ -67,8 +67,11 @@ function transpile(file) {
     let dest = new WriteStream(get_dest(file, '.lua'))
       .once('error', onError)
 
+    let failed = false
+
     // Transpile in between read and write.
     moonc(input).once('error', (err) => {
+      failed = true
       if (err.name == 'SyntaxError') {
         let rel = path.relative(process.cwd(), file)
         let msg = huey.red(rel) + '\n' + err.message
@@ -78,6 +81,7 @@ function transpile(file) {
         onError(err)
       }
     }).pipe(dest).once('finish', () => {
+      if (failed) return
       print.green('transpiled:', path.relative(process.cwd(), file))
     })
   } else {
