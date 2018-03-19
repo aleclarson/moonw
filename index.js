@@ -70,7 +70,7 @@ function transpile(file) {
     let failed = false
 
     // Transpile in between read and write.
-    moonc(input).once('error', (err) => {
+    moonc(input).on('error', (err) => {
       failed = true
       if (err.name == 'SyntaxError') {
         let rel = path.relative(process.cwd(), file)
