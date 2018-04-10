@@ -7,7 +7,7 @@
   "dependencies": {
     "chokidar": "aleclarson/chokidar#1.7.0",
     "fsx": "aleclarson/fsx#1.6.0",
-    "huey": "aleclarson/huey#0.1.0",
+    "huey": "aleclarson/huey#1.1.1",
     "moonc": "^0.0.1"
   }
 }

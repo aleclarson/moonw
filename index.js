@@ -5,11 +5,8 @@ let path = require('path')
 let fs = require('fsx')
 
 let huey = require('huey')
-Object.keys(huey).forEach(key => {
-  let color = huey[key]
-  print[key] = function(m, ...args) {
-    print(color(m), ...args)
-  }
+let log = huey.log(function() {
+  console.log(...arguments)
 })
 
 let argv = process.argv.slice(2)
@@ -76,13 +73,13 @@ function transpile(file) {
         let rel = path.relative(process.cwd(), file)
         let msg = huey.red(rel) + '\n' + err.message
         dest.write(`print([[\n\n${msg}]])\nrequire('os').exit()`)
-        print(`\n${msg}\n`)
+        log(`\n${msg}\n`)
       } else {
         onError(err)
       }
     }).pipe(dest).once('finish', () => {
       if (failed) return
-      print.green('transpiled:', path.relative(process.cwd(), file))
+      log.green('transpiled:', path.relative(process.cwd(), file))
     })
   } else {
     // Copy all other file types.
@@ -96,13 +93,13 @@ function watch() {
     change: transpile,
     unlink(file) {
       let ext = file.endsWith('.moon') ? '.lua' : null
-      print.red('unlink:', path.relative(process.cwd(), file))
+      log.red('unlink:', path.relative(process.cwd(), file))
       fs.removeFile(get_dest(file, ext))
     },
     addDir: (dir) => fs.writeDir(get_dest(dir)),
     unlinkDir: (dir) => fs.removeDir(get_dest(dir)),
   }
-  print.cyan('Watching for changes...')
+  log.cyan('Watching for changes...')
   return chokidar.watch(src + '/**/*', {
     ignored: ['**/.DS_Store', '**/*.swp'],
   }).on('all', (event, file) => {
@@ -120,16 +117,12 @@ function get_arg(flag) {
   }
 }
 
-function print() {
-  console.log(...arguments)
-}
-
 function fatal() {
-  print.red(...arguments)
+  log.red(...arguments)
   process.exit(1)
 }
 
 function onError(err) {
   let msg = err.constructor.name + ': ' + err.message
-  print.red(msg, err.stack.slice(msg.length))
+  log.red(msg, err.stack.slice(msg.length))
 }
