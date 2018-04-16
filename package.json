@@ -1,6 +1,6 @@
 {
   "name": "moonw",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "bin": {
     "moonw": "cli.sh"
   },

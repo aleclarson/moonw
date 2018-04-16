@@ -1,4 +1,4 @@
-# moonw v1.2.0
+# moonw v1.2.1
 
 File watcher for [moonscript](https://github.com/leafo/moonscript)
 
