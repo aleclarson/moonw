@@ -8,6 +8,6 @@
     "chokidar": "aleclarson/chokidar#1.7.0",
     "fsx": "aleclarson/fsx#1.6.0",
     "huey": "aleclarson/huey#1.1.1",
-    "moonc": "^1.1.4"
+    "moonc": "1.1.5"
   }
 }
